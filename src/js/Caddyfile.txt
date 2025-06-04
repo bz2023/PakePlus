@@ -1,0 +1,9 @@
+localhost {
+    tls internal
+
+    handle_path /kz16api/* {
+        reverse_proxy http://localhost:23456
+    }
+
+    reverse_proxy 127.0.0.1:8080
+}
