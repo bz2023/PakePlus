@@ -1,22 +1,209 @@
 <!DOCTYPE html>
-<html lang="en">
-    <head>
-        <meta charset="UTF-8" />
-        <link rel="stylesheet" href="styles.css" />
-        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-        <title>PakePlus App</title>
-        <script type="module" src="/main.js" defer></script>
-    </head>
+<html>
+<head>
+  <title>所有html文件预览</title>
+  <meta charset="UTF-8">
+  <link rel="icon" href="https://kz16.top/kz16logo.svg">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <script src="./js/htmlfiles.js"></script>
+  <style>
+    :root {
+      --item-width: 280px;
+      --item-height: 180px;
+      --row-gap: 20px;
+      --col-gap: 20px;
+    }
 
-    <body>
-        <main class="container">
-            <h1>Welcome to PakePlus</h1>
+    body {
+      margin: 0;
+      padding: var(--row-gap);
+      background: #f8f9fa;
+    }
 
-            <form class="row" id="greet-form">
-                <input id="greet-input" placeholder="Enter a name..." />
-                <button type="submit">Greet</button>
-            </form>
-            <p id="greet-msg"></p>
-        </main>
-    </body>
+    .matrix-container {
+      display: flex;
+      flex-wrap: wrap;
+      gap: var(--row-gap) var(--col-gap);
+      max-width: 1600px;
+      margin: 0 auto;
+    }
+
+    .matrix-item {
+      flex: 0 0 var(--item-width);
+      box-sizing: border-box;
+      animation: fadeIn 0.5s ease-in;
+    }
+
+    iframe {
+      width: 100%;
+      height: var(--item-height);
+      border: 1px solid #e0e0e0;
+      border-radius: 8px;
+      background: white;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+      transition: transform 0.2s;
+    }
+
+    .item-footer {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-top: 8px;
+      gap: 10px;
+    }
+
+    .ppt-link {
+      flex: 1;
+      text-align: left;
+      color: #2c3e50;
+      text-decoration: none;
+      font: 500 14px/1.5 -apple-system, sans-serif;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .pagination-controls {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-shrink: 0;
+    }
+
+    .pagination-controls button {
+      padding: 2px 8px;
+      border: 1px solid #e0e0e0;
+      border-radius: 4px;
+      background: white;
+      cursor: pointer;
+      font: 500 12px/1.5 -apple-system, sans-serif;
+    }
+
+    .pagination-controls button:hover {
+      background: #f0f0f0;
+    }
+
+    .page-number {
+      font: 500 12px/1.5 -apple-system, sans-serif;
+      color: #666;
+    }
+
+    @media (max-width: 640px) {
+      :root {
+        --item-width: 100%;
+        --col-gap: 0;
+      }
+      .item-footer {
+        flex-direction: column;
+        align-items: flex-start;
+      }
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; }
+      to { opacity: 1; }
+    }
+  </style>
+</head>
+<body>
+  <div class="matrix-container"></div>
+
+  <script>
+    (function() {
+      'use strict';
+      
+      const CONFIG = {
+        baseWidth: 280,
+        maxColumns: 4,
+        items: html_files
+      };
+
+      const container = document.querySelector('.matrix-container');
+      
+      const calculateColumns = () => {
+        const containerWidth = container.clientWidth;
+        return Math.min(
+          Math.floor((containerWidth + CONFIG.baseWidth) / (CONFIG.baseWidth + 20)),
+          CONFIG.maxColumns
+        );
+      };
+
+      const createItem = (filename) => {
+        const basePath = window.location.pathname.replace(/\/[^/]+$/, '');
+        let cleanName = filename.replace('.html', '');
+
+        cleanName = cleanName.length > 13 ? cleanName.substring(0, 13) + '...' : cleanName;
+        const initialPage = 1;
+
+        return `
+          <div class="matrix-item" data-current-page="${initialPage}" data-filename="${filename}">
+            <iframe 
+              src="${basePath}/${filename}?page=${initialPage}&zoom=0.5"
+              title="${cleanName}预览"
+              loading="lazy"
+            ></iframe>
+            <div class="item-footer">
+              <a href="${basePath}/${filename}?page=${initialPage}&zoom=1" 
+                 class="ppt-link"
+                 target="_blank"
+                 rel="noopener noreferrer">
+                [预览]${cleanName} 
+              </a>
+			  <a href="${basePath}/${filename}" 
+                 class="ppt-link"
+                 target="_blank"
+                 rel="noopener noreferrer">
+                [编辑]
+              </a>
+              <div class="pagination-controls">
+                <button class="prev-page">&lt;</button>
+                <span class="page-number"> 第${initialPage}页
+				</span>
+                <button class="next-page">&gt;</button>
+              </div>
+            </div>
+          </div>
+        `;
+      };
+
+      const renderMatrix = () => {
+        const columns = calculateColumns();
+        container.style.maxWidth = `${columns * (CONFIG.baseWidth + 20) - 20}px`;
+        container.innerHTML = CONFIG.items.map(createItem).join('');
+      };
+
+      const handlePageChange = (event) => {
+        const button = event.target;
+        if (!button.classList.contains('prev-page') && !button.classList.contains('next-page')) return;
+
+        const matrixItem = button.closest('.matrix-item');
+        if (!matrixItem) return;
+
+        let currentPage = parseInt(matrixItem.dataset.currentPage, 10);
+        const filename = matrixItem.dataset.filename;
+        const basePath = window.location.pathname.replace(/\/[^/]+$/, '');
+
+        currentPage += button.classList.contains('prev-page') ? -1 : 1;
+        currentPage = Math.max(1, currentPage);
+
+        // 更新页面状态
+        matrixItem.dataset.currentPage = currentPage;
+        matrixItem.querySelector('.page-number').textContent = `第${currentPage}页`;
+        
+        // 更新iframe和链接
+        const newUrl = `${basePath}/${filename}?page=${currentPage}&zoom=0.5`;
+        const newUrl2 = `${basePath}/${filename}?page=${currentPage}&zoom=1`;
+        matrixItem.querySelector('iframe').src = newUrl;
+        matrixItem.querySelector('.ppt-link').href = newUrl2;
+      };
+
+      // 初始化
+      window.addEventListener('DOMContentLoaded', () => {
+        renderMatrix();
+        container.addEventListener('click', handlePageChange);
+      });
+      window.addEventListener('resize', () => requestAnimationFrame(renderMatrix));
+    })();
+  </script>
+</body>
 </html>
